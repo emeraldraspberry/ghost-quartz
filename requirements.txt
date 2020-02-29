@@ -1,0 +1,5 @@
+Pillow==7.0.0
+PyMuPDF==1.16.11
+PySide2==5.14.1
+PySimpleGUIQt==0.31.0
+shiboken2==5.14.1
