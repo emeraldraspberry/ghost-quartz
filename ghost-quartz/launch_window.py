@@ -1,24 +1,5 @@
 import PySimpleGUIQt as SimpleGUI
-import fitz
-import tarfile
-from PIL import Image, ImageQt
 import logging
-from copy import deepcopy
-# import io, gzip, os
-
-
-def get_image():
-    # Extract .pdf from archive into memory, then display .pdf from memory stream.
-    with open("test.tar.gz", "rb") as inpf:
-        y = tarfile.open(mode="r:gz", fileobj=inpf)
-        file = y.extractfile(member="test.pdf").read()
-        doc = fitz.open(filename=None, stream=file, filetype="pdf")
-        page = doc[0]
-        pix = page.getPixmap()
-        mode = "RGBA" if pix.alpha else "RGB"
-        img = Image.frombytes(mode, [pix.width, pix.height], pix.samples)
-        qtimg = ImageQt.ImageQt(img)
-        return qtimg
 
 
 class LaunchWindow(SimpleGUI.Window):
@@ -31,7 +12,6 @@ class LaunchWindow(SimpleGUI.Window):
               ]
     __resizable = True
     __size = (800, 600)
-    __image = get_image()
     __frame_y_layout = [[SimpleGUI.T("File view goes here.")],
                         ]
     __frame_z_layout = [[SimpleGUI.T("Table of Contents goes here.")],
@@ -40,8 +20,11 @@ class LaunchWindow(SimpleGUI.Window):
                      [SimpleGUI.HorizontalSeparator()],
                      [SimpleGUI.Frame("", __frame_z_layout, background_color="#555")],
                      ]
+    # __right_column = [[SimpleGUI.Image(filename=None, key="__display__")],
+    #                  ]
     __file_browse = SimpleGUI.FileBrowse("A'", target="__file__", enable_events=True)
-    # Using Button instead of ButtonImage as placeholders.
+    __image_size = (0, 0)
+    # Using Button instead of ButtonImage as placeholders. Functionality not final.
     # A - Sidebar toggle, A' - Open file, B - Refresh, C - Rewind, D - Seek, E - Stretch by Width, D - Stretch by Screen
     # G1 - Compress .pdf, G2 - Extract .pdf, G3 - Wildcard compress .pdf singly, G4 - Wildcard extract .pdf singly,
     # G5 - Change archive container of .pdf
@@ -52,7 +35,12 @@ class LaunchWindow(SimpleGUI.Window):
                  SimpleGUI.Button("D"), SimpleGUI.Button("E"), SimpleGUI.VerticalSeparator(),
                  SimpleGUI.Button("G1"), SimpleGUI.Button("G2"), SimpleGUI.Button("G3"),
                  SimpleGUI.Button("G4"), SimpleGUI.Button("G5")],
-                [SimpleGUI.Column(__left_column), SimpleGUI.Image(filename=__image, key="__display__")],
+                [SimpleGUI.Column(__left_column),
+                 # PySimpleGUI does not dynamically update allocated pixel size of image container.
+                 # Will crash with SIGSEGV if size dimensions is smaller than that of image object!
+                 # size and size_px args currently do not work. Hack by using filename arg.
+                 SimpleGUI.Image(filename=None, key="__display__"),
+                 ]
                 ]
 
     def __init__(self, title=__title, resizable=__resizable, size=__size, layout=__layout):
@@ -60,43 +48,3 @@ class LaunchWindow(SimpleGUI.Window):
 
     def open_file_browse(self):
         self.__file_browse.Click()
-
-    def open_file(self, fpath):
-        try:
-            with open(fpath, "rb") as f_inp:
-                f_tar = tarfile.open(mode="r:gz", fileobj=f_inp)
-                file = f_tar.extractfile(member="test.pdf").read()
-                doc = fitz.open(filename=None, stream=file, filetype="pdf")
-                page = doc[1]
-                pix = page.getPixmap()
-                mode = "RGBA" if pix.alpha else "RGB"
-                img = Image.frombytes(mode, [pix.width, pix.height], pix.samples)
-                qtimg = ImageQt.ImageQt(img)
-                print(qtimg)
-                self.FindElement("__display__").Update(filename=qtimg)
-                return len(doc), 0
-        except Exception as e:
-            logging.error("Exception occurred.")
-            logging.error(f"{e}")
-            return False
-
-    def seek_page(self, doc_pages, current_page, fpath):
-        try:
-            with open(fpath, "rb") as f_inp:
-                current_page += 1
-                f_tar = tarfile.open(mode="r:gz", fileobj=f_inp)
-                file = f_tar.extractfile(member="test.pdf").read()
-                doc = fitz.open(filename=None, stream=file, filetype="pdf")
-                page = doc[current_page]
-                logging.debug(f"{page}, current_page:{current_page}")
-                pix = page.getPixmap()
-                mode = "RGBA" if pix.alpha else "RGB"
-                img = Image.frombytes(mode, [pix.width, pix.height], pix.samples)
-                qtimg = ImageQt.ImageQt(img)
-                print(qtimg)
-                self.FindElement("__display__").Update(filename=qtimg)
-                return len(doc), current_page
-        except Exception as e:
-            logging.error("Exception occurred.")
-            logging.error(f"{e}")
-            return False
