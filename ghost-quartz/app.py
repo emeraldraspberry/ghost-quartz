@@ -1,10 +1,8 @@
 # import fitz
-import PySimpleGUIQt as sg
 # from PIL import Image, ImageQt
 from launch_window import LaunchWindow
 from pdf_handler import PdfHandler
 import logging
-import sys
 import faulthandler
 
 # Logging setup
@@ -32,10 +30,15 @@ def app():
             pdfhandler.set_file_path(values["__file__"])
             pdfhandler.open_file()
             is_opened = True
+        # When Rewind button is pressed.
         if event == "C" and is_opened is not False:
             pdfhandler.rewind_page()
+        # When Seek button is pressed.
         if event == "D" and is_opened is not False:
             pdfhandler.seek_page()
+        # When Stretch by Width button is pressed.
+        if event == "E" and is_opened is not False:
+            pdfhandler.stretch_by_width()
 
         logging.debug(f"Event:{event} , Values:{values}")
         # win.Finalize()

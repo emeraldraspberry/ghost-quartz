@@ -1,6 +1,6 @@
 import tarfile
 import fitz
-from PIL import Image, ImageQt
+from PIL import Image, ImageTk
 import logging
 import filetype
 
@@ -13,7 +13,9 @@ class PdfHandler:
         self.file_path = file_path
         self.pdf_len = None
         self.pdf_page_num = 0
-        self.scale_factor = 1.2
+        self.pdf_width = 0
+        self.pdf_height = 0
+        self.scale_factor = 1
 
     def set_file_path(self, file_path):
         if self.file_path == file_path:
@@ -25,13 +27,25 @@ class PdfHandler:
         logging.debug(f"type:{type(document)}")
         page = document[self.pdf_page_num]
         logging.debug(f"page:{page}")
+        org_mat = fitz.Matrix(1, 1)
         mat = fitz.Matrix(self.scale_factor, self.scale_factor)
+        org_pix = page.getPixmap(matrix=org_mat)
         pix = page.getPixmap(matrix=mat)
+        self.pdf_width = org_pix.width
+        self.pdf_height = org_pix.height
+        logging.debug(f".pdf original size:({self.pdf_width},{self.pdf_height})")
         pix_mode = "RGBA" if pix.alpha else "RGB"
         img = Image.frombytes(pix_mode, [pix.width, pix.height], pix.samples)
-        qtimg = ImageQt.ImageQt(img)
-        self.launch_window.FindElement("__display__").Update(filename=qtimg)
-        logging.debug(f"Updated __display with {qtimg}")
+        # PySimpleGuiQt implementation
+        # Not used due to segmentation fault problems with Qt.
+        # qtimg = ImageQt.ImageQt(img)
+        # self.launch_window.FindElement("__display__").Update(filename=qtimg)
+        # logging.debug(f"Updated __display with {qtimg}")
+
+        # PySimpleGui TK implementation
+        tkimg = ImageTk.PhotoImage(img)
+        self.launch_window.FindElement("__display__").Update(data=tkimg)
+        logging.debug(f"Updated __display with {tkimg}")
         self.pdf_len = len(document)
         document.close()
 
@@ -113,5 +127,13 @@ class PdfHandler:
         self.open_file()
 
     def seek_page(self):
+        if self.pdf_page_num >= self.pdf_len - 1:
+            return
         self.pdf_page_num += 1
+        self.open_file()
+
+    def stretch_by_width(self):
+        win_size = self.launch_window.size
+        wrap_size = int(0.75 * win_size[0])
+        self.scale_factor = wrap_size / self.pdf_width
         self.open_file()

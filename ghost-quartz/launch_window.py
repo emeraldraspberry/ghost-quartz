@@ -1,4 +1,5 @@
-import PySimpleGUIQt as SimpleGUI
+#import PySimpleGUIQt as SimpleGUI
+import PySimpleGUI as SimpleGUI
 import logging
 
 
@@ -17,11 +18,10 @@ class LaunchWindow(SimpleGUI.Window):
     __frame_z_layout = [[SimpleGUI.T("Table of Contents goes here.")],
                         ]
     __left_column = [[SimpleGUI.Frame("", __frame_y_layout, background_color="#555")],
-                     [SimpleGUI.HorizontalSeparator()],
                      [SimpleGUI.Frame("", __frame_z_layout, background_color="#555")],
                      ]
-    # __right_column = [[SimpleGUI.Image(filename=None, key="__display__")],
-    #                  ]
+    __right_column = [[SimpleGUI.Image(filename=None, key="__display__", pad=(0, 0))]
+                      ]
     __file_browse = SimpleGUI.FileBrowse("A'", target="__file__", enable_events=True)
     __image_size = (0, 0)
     # Using Button instead of ButtonImage as placeholders. Functionality not final.
@@ -36,10 +36,8 @@ class LaunchWindow(SimpleGUI.Window):
                  SimpleGUI.Button("G1"), SimpleGUI.Button("G2"), SimpleGUI.Button("G3"),
                  SimpleGUI.Button("G4"), SimpleGUI.Button("G5")],
                 [SimpleGUI.Column(__left_column),
-                 # PySimpleGUI does not dynamically update allocated pixel size of image container.
-                 # Will crash with SIGSEGV if size dimensions is smaller than that of image object!
-                 # size and size_px args currently do not work. Hack by using filename arg.
-                 SimpleGUI.Image(filename=None, key="__display__"),
+                 SimpleGUI.Column(layout=__right_column, key="__display_wrapper__",
+                                  background_color="#555"),
                  ]
                 ]
 
