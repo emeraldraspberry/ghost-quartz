@@ -5,6 +5,7 @@
 - [Installation](#Installaton)
 - [Usage](#Usage)
 - [License](#License)
+- [Attribution](#Attribution)
 ## Introduction
 Ghost Quartz is an experimental pdf viewer program aiming to have the
 powerful feature of directly reading compressed pdf files. With no need
@@ -28,8 +29,6 @@ Ghost Quartz will run when all requirements are satisfied:
 `python3 ghost-quartz/app.py`
 
 ## Usage
-![](doc/diagram.png)
-
 User interface buttons are not final and will change, which may or may
 not include: name changes, functionality changes, additions, or
 removals.
@@ -37,3 +36,6 @@ removals.
 ![](doc/license.png)
 
 Ghost Quartz is distributed under the GNU GPL v3 license.
+
+## Attribution
+- Fugue Icons (C) 2013 Yusuke Kamiyamane. All rights reserved.

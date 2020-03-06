@@ -1,2 +1,4 @@
-
+*.json
 /ghost-quartz/test
+/venv
+/venv36

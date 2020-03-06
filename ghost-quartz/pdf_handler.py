@@ -1,18 +1,21 @@
 import tarfile
 import fitz
-from PIL import Image, ImageTk
+from PIL import Image, ImageQt
 import logging
 import filetype
+import hashlib
 
 from zipfile import ZipFile
 
 
 class PdfHandler:
-    def __init__(self, launch_window, file_path=None):
-        self.launch_window = launch_window
+    def __init__(self, window, file_path=None):
+        self.window = window
         self.file_path = file_path
         self.pdf_len = None
         self.pdf_page_num = 0
+        self.pdf_name = None
+        self.hash = None
         self.pdf_width = 0
         self.pdf_height = 0
         self.scale_factor = 1
@@ -23,29 +26,39 @@ class PdfHandler:
         self.file_path = file_path
         self.pdf_page_num = 0
 
+    # TODO
+    # Refactor this big long method.
     def update_image(self, document):
+        print(self.pdf_page_num)
+        try:
+            self.pdf_name = document.metadata["title"]
+        except Exception as e:
+            logging.error(f"Exception occurred with {self.file_path}.")
+            logging.error(f"{e}")
+            return False
         logging.debug(f"type:{type(document)}")
         page = document[self.pdf_page_num]
         logging.debug(f"page:{page}")
         org_mat = fitz.Matrix(1, 1)
-        mat = fitz.Matrix(self.scale_factor, self.scale_factor)
+        # mat = fitz.Matrix(self.scale_factor, self.scale_factor)
         org_pix = page.getPixmap(matrix=org_mat)
-        pix = page.getPixmap(matrix=mat)
+        # pix = page.getPixmap(matrix=mat)
         self.pdf_width = org_pix.width
         self.pdf_height = org_pix.height
+
+        size = self.window.widget.size().width()
+        wrap_size = int(size)
+        self.scale_factor = wrap_size / self.pdf_width
+        mat = fitz.Matrix(self.scale_factor, self.scale_factor)
+        pix = page.getPixmap(matrix=mat)
         logging.debug(f".pdf original size:({self.pdf_width},{self.pdf_height})")
         pix_mode = "RGBA" if pix.alpha else "RGB"
         img = Image.frombytes(pix_mode, [pix.width, pix.height], pix.samples)
-        # PySimpleGuiQt implementation
-        # Not used due to segmentation fault problems with Qt.
         # qtimg = ImageQt.ImageQt(img)
-        # self.launch_window.FindElement("__display__").Update(filename=qtimg)
-        # logging.debug(f"Updated __display with {qtimg}")
+        self.window.label.setPixmap(ImageQt.toqpixmap(img))
+        self.window.label.update()
+        logging.debug(f"Updated label with {img}")
 
-        # PySimpleGui TK implementation
-        tkimg = ImageTk.PhotoImage(img)
-        self.launch_window.FindElement("__display__").Update(data=tkimg)
-        logging.debug(f"Updated __display with {tkimg}")
         self.pdf_len = len(document)
         document.close()
 
@@ -58,10 +71,14 @@ class PdfHandler:
             if file_count == 1:
                 logging.debug(f"Extracting {file[0]}")
                 pdf = tar.extractfile(member=file[0]).read()
+                self.generate_hash(pdf)
                 pdf_doc = fitz.open(filename=None, stream=pdf, filetype="pdf")
                 self.update_image(pdf_doc)
 
     def open_pdf(self):
+        with open(self.file_path, "rb") as file:
+            data = file.read()
+            self.hash = hashlib.md5(data).hexdigest()
         pdf_doc = fitz.open(filename=self.file_path)
         self.update_image(pdf_doc)
 
@@ -76,12 +93,13 @@ class PdfHandler:
 
     def open_zip(self):
         with ZipFile(self.file_path, "r") as zip_file:
-            list = zip_file.namelist()
-            file_count = len(list)
-            logging.debug(f"Zip members:{list}, Zip amount:{file_count}")
+            zip_list = zip_file.namelist()
+            file_count = len(zip_list)
+            logging.debug(f"Zip members:{zip_list}, Zip amount:{file_count}")
             if file_count == 1:
-                logging.debug(f"Extracting {list[0]}")
-                pdf = zip_file.read(name=list[0])
+                logging.debug(f"Extracting {zip_list[0]}")
+                self.generate_hash(zip_list[0])
+                pdf = zip_file.read(name=zip_list[0])
                 pdf_doc = fitz.open(filename=None, stream=pdf, filetype="pdf")
                 self.update_image(pdf_doc)
 
@@ -116,7 +134,7 @@ class PdfHandler:
                 self.open_zip()
                 return
         except Exception as e:
-            logging.error("Exception occurred.")
+            logging.error(f"Exception occurred with {self.file_path}.")
             logging.error(f"{e}")
             return False
 
@@ -133,7 +151,11 @@ class PdfHandler:
         self.open_file()
 
     def stretch_by_width(self):
-        win_size = self.launch_window.size
-        wrap_size = int(0.75 * win_size[0])
+        size = self.window.widget.size().width()
+        wrap_size = int(size)
         self.scale_factor = wrap_size / self.pdf_width
         self.open_file()
+
+    def generate_hash(self, pdf):
+        md5 = hashlib.md5(pdf).hexdigest()
+        self.hash = md5
