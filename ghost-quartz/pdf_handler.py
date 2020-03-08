@@ -46,9 +46,12 @@ class PdfHandler:
         self.pdf_width = org_pix.width
         self.pdf_height = org_pix.height
 
-        size = self.window.widget.size().width()
+        # TODO
+        # Refactor this duplication snippet along with stretch_by_width.
+        size = self.window.scroll_area.viewport().contentsRect().width()
         wrap_size = int(size)
         self.scale_factor = wrap_size / self.pdf_width
+
         mat = fitz.Matrix(self.scale_factor, self.scale_factor)
         pix = page.getPixmap(matrix=mat)
         logging.debug(f".pdf original size:({self.pdf_width},{self.pdf_height})")
@@ -151,9 +154,10 @@ class PdfHandler:
         self.open_file()
 
     def stretch_by_width(self):
-        size = self.window.widget.size().width()
+        size = self.window.scroll_area.viewport().contentsRect().width()
         wrap_size = int(size)
         self.scale_factor = wrap_size / self.pdf_width
+        logging.debug(f"Window size: {wrap_size}, PDF width: {self.pdf_width}, SF: {self.scale_factor}")
         self.open_file()
 
     def generate_hash(self, pdf):

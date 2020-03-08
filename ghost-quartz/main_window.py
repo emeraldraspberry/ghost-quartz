@@ -5,6 +5,7 @@ import os
 import logging
 from copy import deepcopy, copy
 
+
 class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, *args, **kwargs):
@@ -54,16 +55,37 @@ class MainWindow(QtWidgets.QMainWindow):
         self.widget = QtWidgets.QWidget()
         self.widget.setLayout(layout_label)
 
-        scroll_area = QtWidgets.QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setBackgroundRole(QtGui.QPalette.Dark)
-        scroll_area.setWidget(self.widget)
-        scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        scroll_area.setSizeAdjustPolicy(QtWidgets.QScrollArea.AdjustToContents)
-        self.setCentralWidget(scroll_area)
+        self.scroll_area = QtWidgets.QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setBackgroundRole(QtGui.QPalette.Dark)
+        self.scroll_area.setWidget(self.widget)
+        self.scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.scroll_area.setSizeAdjustPolicy(QtWidgets.QScrollArea.AdjustToContents)
+        self.setCentralWidget(self.scroll_area)
+
+        # Scroll bar functionality
+        self.set_scroll_bar(self.scroll_area)
 
         # Required since PyQt5 sets windows hidden by default.
         self.show()
+
+    def scrolled(self, scroll_bar, v, sa):
+        logging.debug(f"Event v: {v}")
+        if v == scroll_bar.maximum():
+            logging.debug("Reached end of page...seeking...")
+            self.pdf_handler.seek_page()
+            scroll_bar.setValue(scroll_bar.minimum() + 1)
+
+        if v == scroll_bar.minimum():
+            logging.debug("Reached start of page...rewinding...")
+            self.pdf_handler.rewind_page()
+            scroll_bar.setValue(scroll_bar.maximum() - 1)
+
+        logging.debug(f"scroll_area viewport content size: {sa.viewport().contentsRect().width()}")
+
+    def set_scroll_bar(self, scroll_area):
+        scroll_bar = scroll_area.verticalScrollBar()
+        scroll_bar.valueChanged.connect(lambda value: self.scrolled(scroll_bar, value, scroll_area))
 
     def define_toolbar_buttons(self, toolbar):
 
